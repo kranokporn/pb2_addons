@@ -2,7 +2,7 @@
 import logging
 from openerp import models, api, _
 from openerp.exceptions import ValidationError
-from openerp.tools.float_utils import float_compare
+from openerp.tools.float_utils import float_compare, float_is_zero
 
 _logger = logging.getLogger(__name__)
 
@@ -175,6 +175,37 @@ class ResProject(models.Model):
             result = res['result'] or {}
             res['result'] = result.get(fiscal.name, 0.0)
         _logger.info('get_current_fy_budget_release(), output: %s' % res)
+        return res
+
+    @api.model
+    def check_budget_commit_asset_owner(self, project_code):
+        _logger.info(
+            'check_budget_commit_asset_owner(), input: %s' % project_code)
+        """ Return result as dict """
+        res = {
+            'messages': False,
+            'check_budget_commit': False,
+            'check_asset_owner': False,
+        }
+        project = self.name_search(project_code, operator='=')
+        if len(project) != 1:
+            res['messages'] = [_('%s not found!') % project_code]
+        else:
+            p = self.browse(project[0][0])
+            # Check commit in project
+            pr_commit = sum(p.monitor_expense_ids.mapped('amount_pr_commit'))
+            po_commit = sum(p.monitor_expense_ids.mapped('amount_po_commit'))
+            exp_commit = sum(p.monitor_expense_ids.mapped('amount_exp_commit'))
+            total = pr_commit + po_commit + exp_commit
+            if not float_is_zero(total, precision_rounding=5):
+                res['check_budget_commit'] = True
+
+            asset = self.env['account.asset'].search([
+                ('owner_project_id', '=', project[0][0])])
+            if asset:
+                res['check_asset_owner'] = True
+            res['messages'] = [_('Check Budget Commit and Asset Owner')]
+            _logger.info('check_budget_commit_asset_owner(), output: %s' % res)
         return res
 
     @api.model
