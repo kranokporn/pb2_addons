@@ -178,34 +178,40 @@ class ResProject(models.Model):
         return res
 
     @api.model
-    def check_budget_commit_asset_owner(self, project_code):
+    def check_budget_commit_asset_owner(self, data_dict):
         _logger.info(
-            'check_budget_commit_asset_owner(), input: %s' % project_code)
-        """ Return result as dict """
-        res = {
-            'messages': False,
-            'check_budget_commit': False,
-            'check_asset_owner': False,
-        }
-        project = self.name_search(project_code, operator='=')
-        if len(project) != 1:
-            res['messages'] = [_('%s not found!') % project_code]
-        else:
-            p = self.browse(project[0][0])
-            # Check commit in project
-            pr_commit = sum(p.monitor_expense_ids.mapped('amount_pr_commit'))
-            po_commit = sum(p.monitor_expense_ids.mapped('amount_po_commit'))
-            exp_commit = sum(p.monitor_expense_ids.mapped('amount_exp_commit'))
-            total = pr_commit + po_commit + exp_commit
-            if not float_is_zero(total, precision_rounding=5):
-                res['check_budget_commit'] = True
+            'check_budget_commit_asset_owner(), input: %s' % data_dict)
+        try:
+            # Update project, use 'code' as search key
+            res = self.env['pabi.utils.ws'].\
+                friendly_update_data(self._name, data_dict, 'code')
 
-            asset = self.env['account.asset'].search([
-                ('owner_project_id', '=', project[0][0])])
-            if asset:
-                res['check_asset_owner'] = True
-            res['messages'] = [_('Check Budget Commit and Asset Owner')]
-            _logger.info('check_budget_commit_asset_owner(), output: %s' % res)
+            if res['is_success']:
+                res['check_budget_commit'] = False
+                res['check_asset_owner'] = False
+                res_id = res['result']['id']
+                p_exp = self.browse(res_id).monitor_expense_ids  # Project
+                # Check commit in project
+                pr_commit = sum(p_exp.mapped('amount_pr_commit'))
+                po_commit = sum(p_exp.mapped('amount_po_commit'))
+                exp_commit = sum(p_exp.mapped('amount_exp_commit'))
+                total = pr_commit + po_commit + exp_commit
+                if not float_is_zero(total, precision_rounding=5):
+                    res['check_budget_commit'] = True
+
+                asset = self.env['account.asset'].search([
+                    ('owner_project_id', '=', res_id)])
+                if asset:
+                    res['check_asset_owner'] = True
+                res['messages'] = [_('Check Budget Commit and Asset Owner')]
+        except Exception, e:
+            res = {
+                'is_success': False,
+                'result': False,
+                'messages': _(str(e)),
+            }
+            self._cr.rollback()
+        _logger.info('update_project(), output: %s' % res)
         return res
 
     @api.model
