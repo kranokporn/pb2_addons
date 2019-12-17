@@ -328,6 +328,27 @@ class AccountVoucher(models.Model):
                     rec_lines.reconcile()
         super(AccountVoucher, self).cancel_voucher()
 
+    @api.multi
+    def confirm_proforma_voucher(self):
+        if self.tax_line_wht and self.tax_line_wht.amount != self.line_dr_ids.amount_wht \
+            and self.tax_line_wht.manual != True:
+            view_id = self.env.ref('pabi_account.view_confirm_vendor_payment_wizard_form').id
+            return {
+                    'type': 'ir.actions.act_window',
+                    'res_model': 'account.voucher',
+                    'view_mode': 'form',
+                    'view_type': 'form',
+                    'res_id': self.id,
+                    'views': [(view_id, 'form')],
+                    'target': 'new',
+                }
+        else:
+            self.proforma_voucher()
+        
+    @api.multi
+    def confirm_validate_payments(self):
+        self.proforma_voucher()
+        
 
 class AccountVoucherLine(models.Model):
     _inherit = 'account.voucher.line'
