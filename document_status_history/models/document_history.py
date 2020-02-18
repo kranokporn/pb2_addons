@@ -7,6 +7,48 @@ from openerp import tools
 class AuditlogLogLine(models.Model):
     _inherit = 'auditlog.log.line'
 
+    difference_value = fields.Text(
+        string="Difference Value",
+        compute="_compute_difference_value_text",
+        store=False,
+    )
+    difference_value_text = fields.Text(
+        string="Difference Value Text",
+        compute="_compute_difference_value_text",
+        store=False,
+    )
+
+    @api.multi
+    def _compute_difference_value_text(self):
+        for rec in self:
+            if rec.field_name != 'groups_id':
+                continue
+            old_values = []
+            new_values = []
+            old_values = eval(rec.old_value_text)
+            new_values = eval(rec.new_value_text)
+            diff = list(
+                set(old_values).union(set(new_values)) -
+                set(old_values).intersection(set(new_values))
+            )
+            add = []
+            remove = []
+            rec.difference_value = diff
+            for val in diff:
+                if val in new_values:
+                    text = val
+                    add.append(text)
+                else:
+                    text = val
+                    remove.append(text)
+            if add:
+                rec.difference_value_text = "ADD ---> %s" % add
+            if remove:
+                rec.difference_value_text = "Remove ---> %s" % remove
+            if add and remove:
+                rec.difference_value_text = "ADD ---> %s,\nRemove ---> %s" \
+                                            % (add, remove)
+
     @api.model
     def create(self, vals):
         if vals.get('field_id', False):
