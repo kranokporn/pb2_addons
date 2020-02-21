@@ -187,6 +187,9 @@ class PabiImportJournalEntries(models.Model):
                 'chartfield_id': line.chartfield_id.id,
                 'cost_control_id': line.cost_control_id.id,
                 'origin_ref': line.origin_ref,
+                'product_id': line.product_id.id,
+                'asset_code': line.asset_code,
+                'asset_profile_code': line.asset_profile_code,
                 # More data
                 'period_id': self.env['account.period'].find(line.date).id,
                 'fund_id': line.fund_id or line._get_default_fund(),
@@ -219,6 +222,15 @@ class PabiImportJournalEntries(models.Model):
             for l in lines:
                 period_id = \
                     self.env['account.period'].find(dt=line['date']).id
+                # ensure 1 asset
+                asset = self.env['account.asset'].search([
+                    ('code', '=', l.asset_code)], limit=1)
+                asset_profile = self.env['account.asset.profile'].search([
+                        ('code', '=', l.asset_profile_code)], limit=1)
+                if not l.asset_code:
+                    asset = False
+                if not l.asset_profile_code:
+                    asset_profile = False
                 move_lines.append((0, 0, {
                     'ref': l.ref,
                     'docline_seq': l.docline_seq,
@@ -232,6 +244,10 @@ class PabiImportJournalEntries(models.Model):
                     'chartfield_id': l.chartfield_id.id,
                     'cost_control_id': l.cost_control_id.id,
                     'origin_ref': l.origin_ref,
+                    'product_id': l.product_id.id,
+                    'asset_id': asset and asset.id or False,
+                    'asset_profile_id':
+                    asset_profile and asset_profile.id or False,
                     # More data
                     'period_id': period_id,
                     'fund_id': line._get_default_fund(),
@@ -242,7 +258,9 @@ class PabiImportJournalEntries(models.Model):
                 for ml in move_lines:
                     if ml[2].get('ref') == move_id.ref:
                         move_line.append(ml)
-                move_id.write({'line_id': move_line})
+                move_id.with_context({'allow_asset': True}).write({
+                    'line_id': move_line
+                })
                 move_line = []
             self.env.cr.commit()
             return self.with_context({'not_unlink': True}).split_entries()
@@ -348,4 +366,14 @@ class PabiImportJournalEntriesLine(MergedChartField, models.Model):
     chartfield_id = fields.Many2one(
         'chartfield.view',
         domain=[],  # Remove domain
+    )
+    product_id = fields.Many2one(
+        'product.product',
+        string='Product',
+    )
+    asset_code = fields.Char(
+        string='Asset Code',
+    )
+    asset_profile_code = fields.Char(
+        string='Asset Profile Code',
     )
