@@ -73,7 +73,7 @@
                                         <field name="activity_id"/>
                                         <field name="product_id"/>
                                         <field name="asset_code"/>
-                                        <field name="asset_profile_code"/>
+                                        <field name="asset_profile_name"/>
                                         <field name="check_commit" invisible="1"/>
                                     </tree>
                                 </field>
