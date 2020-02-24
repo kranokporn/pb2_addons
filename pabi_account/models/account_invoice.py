@@ -35,6 +35,7 @@ class AccountInvoice(models.Model):
     )
     currency_rate = fields.Float(
         string='Currency Rate',
+        digits=(16, 5),
         compute='_compute_currency_rate',
         store=True,
     )
@@ -238,7 +239,7 @@ class AccountInvoice(models.Model):
                     rec.ref_docs = header_text
 
     @api.multi
-    @api.depends('currency_id')
+    @api.depends('currency_id', 'date_invoice')
     def _compute_currency_rate(self):
         for rec in self:
             company = rec.company_id
