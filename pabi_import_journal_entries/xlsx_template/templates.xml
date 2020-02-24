@@ -35,7 +35,6 @@
                             'P3': 'activity_id',
                             'Q3': 'product_id',
                             'R3': 'asset_code',
-                            'S3': 'asset_profile_name',
                         }
                     }
                 }

@@ -6,7 +6,7 @@ from openerp.tools.float_utils import float_compare
 from openerp.addons.pabi_chartfield_merged.models.chartfield import \
     MergedChartField
 from openerp.exceptions import RedirectWarning
-from openerp.addons.connector.queue.job import job, related_action
+from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.session import ConnectorSession
 from openerp.addons.connector.exception import RetryableJobError
 
@@ -190,7 +190,6 @@ class PabiImportJournalEntries(models.Model):
                 'origin_ref': line.origin_ref,
                 'product_id': line.product_id.id,
                 'asset_code': line.asset_code,
-                'asset_profile_name': line.asset_profile_name,
                 # More data
                 'period_id': self.env['account.period'].find(line.date).id,
                 'fund_id': line.fund_id or line._get_default_fund(),
@@ -226,20 +225,11 @@ class PabiImportJournalEntries(models.Model):
                 # ensure 1 asset
                 asset = self.env['account.asset'].search([
                     ('code', '=', l.asset_code)], limit=1)
-                # using re for match code in string
-                if l.asset_profile_name:
-                    matches = re.search(r"(\d+)", l.asset_profile_name)
-                    code_asset = matches.group()
-                    asset_profile = self.env['account.asset.profile'].search([
-                        ('code', '=', code_asset)], limit=1)
-                if (l.asset_code and not asset) or \
-                        (l.asset_profile_name and not asset_profile):
+                if (l.asset_code and not asset):
                     raise ValidationError(
                         _("%s not found!") % l.asset_code)
                 if not l.asset_code:
                     asset = False
-                if not l.asset_profile_name:
-                    asset_profile = False
                 move_lines.append((0, 0, {
                     'ref': l.ref,
                     'docline_seq': l.docline_seq,
@@ -255,8 +245,6 @@ class PabiImportJournalEntries(models.Model):
                     'origin_ref': l.origin_ref,
                     'product_id': l.product_id.id,
                     'asset_id': asset and asset.id or False,
-                    'asset_profile_id':
-                    asset_profile and asset_profile.id or False,
                     # More data
                     'period_id': period_id,
                     'fund_id': line._get_default_fund(),
@@ -382,7 +370,4 @@ class PabiImportJournalEntriesLine(MergedChartField, models.Model):
     )
     asset_code = fields.Char(
         string='Asset Code',
-    )
-    asset_profile_name = fields.Char(
-        string='Asset Profile Code',
     )
