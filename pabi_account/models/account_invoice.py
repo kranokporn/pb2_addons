@@ -242,17 +242,20 @@ class AccountInvoice(models.Model):
     @api.depends('currency_id', 'date_invoice')
     def _compute_currency_rate(self):
         for rec in self:
-            company = rec.company_id
             context = self._context.copy()
             ctx_date = rec.date_invoice
             if not ctx_date:
                 ctx_date = fields.Date.today()
             context.update({'date': ctx_date})
             # get rate of company currency to current invoice currency
-            rate = self.env['res.currency'].\
-                with_context(context)._get_conversion_rate(company.currency_id,
-                                                           rec.currency_id)
-            rec.currency_rate = rate
+            rate_input = self.env['res.currency.rate'].search([
+                ('currency_id', '=', rec.currency_id.id),
+                ('name', '<=', ctx_date)
+            ], order='id desc', limit=1).rate_input
+            # rate = self.env['res.currency'].\
+            #     with_context(context)._get_conversion_rate(company.currency_id,
+            #                                                rec.currency_id)
+            rec.currency_rate = rate_input
 
     @api.multi
     def _compute_payment_count(self):
