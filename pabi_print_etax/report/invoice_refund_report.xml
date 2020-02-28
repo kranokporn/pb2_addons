@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+
+        <template id="invoice_refund_report_header">
+            <div class="header">
+                <img t-att-src="o.line_id.mapped('taxbranch_id').logo" style="height: 45px; width: 45;"/>
+                <t t-set="title" t-value="'เอกสาร/Document'"/>
+                <t t-if="o.doctype == 'out_invoice'"><t t-set="title" t-value="'ใบแจ้งหนี้/Invoice'"/></t>
+                <t t-if="o.doctype == 'out_refund'"><t t-set="title" t-value="'ใบลดหนี้/Credit Note'"/></t>
+                <h2 style="text-align: center;"><span t-esc="title"/></h2>
+
+                <table class="table table-condensed">
+                    <tr style="vertical-align: top;">
+                        <td>รหัสลูกค้า/Customer:</td>
+                        <td><span t-field="customer.search_key"/></td>
+                        <td>เลขที่เอกสาร/Document No.:</td>
+                        <td><span t-field="o.name"/></td>
+                    </tr>
+                    <tr style="vertical-align:top;">
+                        <td>หน่วยงาน บริษัท/<br/>Customer name:</td>
+                        <td><span t-field="customer.title"/><span t-field="customer.name"/></td>
+                        <td>วันที่/Date:</td>
+                        <td><span t-field="o.date_document"/></td>
+                    </tr>
+                    <tr style="vertical-align:top;">
+                        <td>ที่อยู่/Address:</td>
+                        <td>
+                            <span t-field="customer.street"/>
+                            <span t-field="customer.street2"/><br/>
+                            <span t-field="customer.township_id.name"/>
+                            <span t-field="customer.district_id.name"/>
+                            <span t-field="customer.province_id.name"/>
+                            <span t-field="customer.zip"/><br/>
+                            Tel: <span t-field="customer.phone"/><span t-if="not customer.phone">-</span>,&#160;
+                            Fax: <span t-field="customer.fax"/><span t-if="not customer.fax">-</span>
+                        </td>
+                        <td>ผู้ออกใบแจ้งหนี้/From:</td>
+                        <td>
+                          <span t-field="employee.title_id.name"/>
+                          <span t-field="employee.first_name"/>
+                          <span t-field="employee.last_name"/><br/>
+                          Tel: <span t-field="employee.work_phone"/><span t-if="not employee.work_phone">-</span><br/>
+                          Email: <span t-field="employee.work_email"/><span t-if="not employee.work_email">-</span>
+                        </td>
+                    </tr>
+                </table>
+                <p>
+                    เลขประจำตัวผู้เสียภาษี/Tax ID: <span t-field="customer.vat"/>&#160; &#160; &#160;
+                    สาขา/Branch No.: <span t-if="customer.taxbranch != '00000'"><span t-field="customer.taxbranch"/></span>
+                                     <span t-if="customer.taxbranch == '00000' and language == 'th_TH'">สำนักงานใหญ่</span>
+                                     <span t-if="customer.taxbranch == '00000' and language == 'en_US'">Head Office</span>
+                </p>
+            </div>
+        </template>
+
+        <template id="invoice_refund_report_body">
+            <table class="table table-condensed">
+                <thead>
+                    <tr>
+                        <th>ลำดับที่<br/>Item</th>
+                        <th>รายการ<br/>Description</th>
+                        <th>จำนวน<br/>Quantity</th>
+                        <th>หน่วยนับ<br/>Unit</th>
+                        <th>ราคาต่อหน่วย<br/>Unit Price</th>
+                        <th>จำนวนเงิน<br/>Amount (TH)</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <t t-set="n" t-value="1"/>
+                    <t t-set="datas" t-value="o._get_datas_invoice_refund()"/>
+                    <t t-foreach="datas['lines']" t-as="line">
+                        <tr style="vertical-align: top;">
+                            <td style="text-align: center;"><span t-esc="n"/></td>
+                            <td><span t-esc="line['name']"/></td>
+                            <td style="text-align: right;"><span t-esc="'{0:,.2f}'.format(line['quantity'])"/></td>
+                            <td style="text-align: center;"><span t-esc="line['uom']"/></td>
+                            <td style="text-align: right;"><span t-esc="'{0:,.2f}'.format(line['price_unit'])"/></td>
+                            <td style="text-align: right;"><t t-esc="'{0:,.2f}'.format(line['quantity'] * line['price_unit'])"/></td>
+                        </tr>
+                        <t t-set="n" t-value="n+1"/>
+
+                    </t>
+
+                    <tr>
+                        <td colspan="3" rowspan="2" style="text-align: center;">
+                            <span t-esc="datas['total_text_th']"/>
+                        </td>
+                        <td colspan="2">ส่วนลด/Discount</td>
+                        <td style="text-align: right;">
+                            <span t-esc="'{0:,.2f}'.format(datas['discount'])"/>
+                        </td>
+                    </tr>
+                    <tr style="vertical-align: top;">
+                        <td colspan="2">รวมมูลค่าก่อนภาษีมูลค่าเพิ่ม/<br/>Sub Total</td>
+                        <td style="text-align: right;">
+                            <span t-esc="'{0:,.2f}'.format(datas['amount_untaxed'])"/>
+                        </td>
+                    </tr>
+                    <tr style="vertical-align: top;">
+                        <td colspan="3" rowspan="2">หมายเหตุRemark: <span t-field="o.narration"/></td>
+                        <td colspan="2">ภาษีมูลค่าเพิ่ม/Vat</td>
+                        <td style="text-align: right;">
+                            <span t-esc="'{0:,.2f}'.format(datas['tax'])"/>
+                        </td>
+                    </tr>
+                    <tr style="vertical-align: top;">
+                        <td colspan="2">จำนวนเงินสุทธิ/Grand</td>
+                        <td style="text-align: right;">
+                            <span t-esc="'{0:,.2f}'.format(datas['total'])"/>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+            <table class="table table-condensed">
+                <tr>
+                    <!-- <td>เงื่อนไขการชำระเงิน/Payment Term: <span t-field="o.payment_term.name"/></td> -->
+                    <td>วันที่ครบกำหนดชำระเงิน/Due Date: <span t-field="o.date_due"/></td>
+                </tr>
+            </table>
+        </template>
+
+        <template id="invoice_refund_report_footer">
+            <span t-if="language == 'th_TH'">
+                <p>
+                    สวทช. ขอสงวนสิทธิ์ในการคิดดอกเบี้ยผิดนัดของเงินต้นคงค้างชำระตามกฎหมาย<br/>
+                    เนื่องจากสวทช.เป็นหน่วยงานของรัฐจึงไม่อยู่ในเกณฑ์จะถูกหักภาษี ณ ที่จ่าย<br/>
+                </p>
+                <strong>วิธีการชำระเงิน:</strong><br/>
+            </span>
+            <span t-if="language == 'en_US'">
+                <p>
+                    Any payment after the due date shall be subjected to the interest rate as stated by Thai law.<br/>
+                    NSTDA is a government sector, no withholding tax.<br/>
+                </p>
+                <strong>Payment Method:</strong><br/>
+            </span>
+            <span t-field="o.line_id.mapped('taxbranch_id').payment_method_text"/><br/>
+
+            <table class="table table-condensed" style="margin-top: 30px;">
+                <tr style="text-align: center;">
+                    <td>ลงชื่อ</td>
+                    <td/>
+                    <td>ผู้มีอำนาจลงนาม(ลูกค้า)</td>
+                    <td>ลงชื่อ</td>
+                    <td/>
+                    <td>ผู้อนุมัติ</td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td>Signature</td>
+                    <td style="border-bottom: 1px dotted;"/>
+                    <td>Authorized person</td>
+                    <td>Signature</td>
+                    <td style="border-bottom: 1px dotted;"/>
+                    <td>Approved by</td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td/>
+                    <td>
+                        (&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160;)
+                    </td>
+                    <td/>
+                    <td/>
+                    <td>
+                        (<span t-field="employee.title_id.name"/>&#160;<span t-field="employee.first_name"/>&#160;<span t-field="employee.last_name"/>)
+                    </td>
+                    <td/>
+                </tr>
+                <tr>
+                    <td>ตำแหน่ง/Position</td>
+                    <td colspan="2" style="border-bottom: 1px dotted;"/>
+                    <td>ตำแหน่ง/Position</td>
+                    <td colspan="2" style="border-bottom: 1px dotted; text-align: center;">
+                        <span t-field="employee.position_id.name"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>วันที่/Date</td>
+                    <td colspan="2" style="border-bottom: 1px dotted;"/>
+                    <td>วันที่/Date</td>
+                    <td colspan="2" style="border-bottom: 1px dotted; text-align: center;">
+                        <span t-field="o.create_date"/>
+                    </td>
+                </tr>
+            </table>
+
+        </template>
+
+        <template id="invoice_refund_report">
+
+            <t t-call="report.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-foreach="o.partner_id" t-as="customer">
+                    <t t-foreach="o.validate_user_id.partner_id.employee_id" t-as="employee">
+                    <!-- <t t-esc="setLang(o.partner_id.lang)"/> -->
+                    <t t-set="language" t-value="o._get_language()"/>
+                        <!-- <t t-call="report.external_layout"> -->
+                        <div class="page">
+                            <t t-call="pabi_print_etax.invoice_refund_report_header"/>
+                            <t t-call="pabi_print_etax.invoice_refund_report_body"/>
+                            <t t-call="pabi_print_etax.invoice_refund_report_footer"/>
+                        </div>
+                        <!-- </t> -->
+                    </t>
+                    </t>
+                </t>
+            </t>
+
+        </template>
+
+    </data>
+</openerp>

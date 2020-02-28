@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<openerp>
+    <data>
+
+        <record id="action_invoice_refund_report_qweb" model="ir.actions.report.xml">
+  					<field name="string">Print Invoice/Refund</field>
+  					<field name="auto">True</field>
+  					<field name="model">account.move</field>
+  					<field name="name">Print Invoice/Refund</field>
+  					<field name="report_type">qweb-pdf</field>
+  					<field name="report_name">pabi_print_etax.invoice_refund_report</field>
+  					<field name="report_file">pabi_print_etax.invoice_refund_report</field>
+  					<field name="menu">True</field>
+  					<field name="header">False</field>
+  					<field name="copies">1</field>
+            <field name="download_filename">${object.name}.pdf</field>
+  					<field name="paperformat_id" ref="pabi_print_etax.paperformat_invoice_refund"/>
+				</record>
+
+        <record id="pabi_invoice_refund_report" model="ir.values">
+  					<field name="name">Print Invoice/Refund</field>
+  					<field name="model">account.move</field>
+  					<field name="key2" eval="'client_print_multi'"/>
+  					<field name="value_unpickle" eval="'ir.actions.report.xml, ' +str(action_invoice_refund_report_qweb)"/>
+				</record>
+
+        <record id="action_account_interface_report_qweb" model="ir.actions.report.xml">
+  					<field name="string">Print Account Interface</field>
+  					<field name="auto">True</field>
+  					<field name="model">account.move</field>
+  					<field name="name">Print Account Interface</field>
+  					<field name="report_type">qweb-pdf</field>
+  					<field name="report_name">pabi_print_etax.account_interface_report</field>
+  					<field name="report_file">pabi_print_etax.account_interface_report</field>
+  					<field name="menu">True</field>
+  					<field name="header">False</field>
+  					<field name="copies">1</field>
+  					<field name="download_filename">${object.name}.pdf</field>
+  					<field name="paperformat_id" ref="pabi_print_etax.paperformat_account_interface"/>
+				</record>
+
+        <record id="pabi_account_interface_report" model="ir.values">
+  					<field name="name">Print Account Interface</field>
+  					<field name="model">account.move</field>
+  					<field name="key2" eval="'client_print_multi'"/>
+  					<field name="value_unpickle" eval="'ir.actions.report.xml, ' +str(action_account_interface_report_qweb)"/>
+				</record>
+
+    </data>
+</openerp>
